@@ -4,23 +4,16 @@ import lpsolve55 as lps
 from argparse import ArgumentParser
 
 SECTION_CAP = 1 # currently set to 1 for assigning TAs, real cap is 32
-SECTS_PER_STUD = 1 # currently set to 1 for assigning TAs, real is 1
+SECTS_PER_STUD = 2 # currently set to 1 for assigning TAs, real is 1
 
 class Student:
-    count = 0
-
     def __init__(self, name, rankings):
+        self.name = name
         self.rankings = rankings
-        self.section1, self.section2 = None, None
-        self.rank1, self.rank2 = 0, 0
-        self.sid = Student.count
-        Student.count += 1
+        self.sections = set()
 
     def __repr__(self):
-        return 'Student({0}, {1})'.format(self.name, self.rankings)
-
-    def __str__(self):
-        return 'Student({0})'.format(self.name)
+        return 'Student({0}, {1})'.format(self.name, self.sections)
 
 def import_students(csv_file):
     """
@@ -29,21 +22,39 @@ def import_students(csv_file):
     with open(csv_file, 'rU') as f:
         csvreader = csv.reader(f)
         students = []
+        num_s = len(csvreader.next()) - 1 # ignore first line -- headers
         for row in csvreader:
-            students.append(Student(row[0], [int(s) for s in row[1:]]))
+            students.append(Student(row[0], [num_s - int(s) for s in row[1:]]))
     return students
+
+def parse_results(res, students, M):
+    i = 0
+    for student in students:
+        for section in range(M):
+            if res[i] == 1:
+                student.sections.add(section)
+            i += 1
+
+def output_csv(students):
+    with open('out.csv', 'w') as f:
+        f.write(',' + ','.join([str(i) for i in
+                range(len(students[0].rankings))]) + '\n')
+        for student in students:
+            line = ['TRUE' if x in student.sections else '' for x in
+                    range(len(student.rankings))]
+            f.write(student.name + ',' + ','.join(line) + '\n')
 
 def assign_sections(students):
     """
     students: a list of student objects
-    sections: a list of section numbers
-
+    i = index of sections
+    j = index of students
     The columns, x_i_j, go as follows:
-        x_0_0, x_1_0, x_2_0, ..., x_0_1, ..., x_i_j
+        x_0_0, x_1_0, x_2_0, ..., x_0_1, ..., x_M_N
     """
 
-    M = len(students[0].rankings) # number of sections, each represented by i
-    N = len(students)             # number of students, each represented by j
+    M = len(students[0].rankings) # number of section
+    N = len(students)             # number of students
 
     f = make_obj_f(students)
     A = make_coeff_m(M, N)
@@ -56,10 +67,11 @@ def assign_sections(students):
     # set all variables to binary
     lps.lpsolve('set_binary', lp, v)
 
-    lps.lpsolve('write_lp', lp, 'a.lp')
+    lps.lpsolve('write_lp', lp, 'out.lp')
     lps.lpsolve('solve', lp)
-    print lps.lpsolve('get_variables', lp)[0]
+    res = lps.lpsolve('get_variables', lp)[0]
     lps.lpsolve('delete_lp', lp)
+    parse_results(res, students, M)
 
 def make_obj_f(students):
     l = []
@@ -92,6 +104,8 @@ def make_e_v(M, N):
 def main(csv_file):
     students = import_students(csv_file)
     assign_sections(students)
+    print students
+    output_csv(students)
 
 if __name__ == '__main__':
     parser = ArgumentParser(description='creates optimal section assignment')
