@@ -3,6 +3,8 @@ import lp_maker as lpm
 import lpsolve55 as lps
 from argparse import ArgumentParser
 
+CSV_OUT = 'out.csv'
+LP_OUT = 'out.lp'
 SECTION_CAP = 1 # currently set to 1 for assigning TAs, real cap is 32
 SECTS_PER_STUD = 2 # currently set to 1 for assigning TAs, real is 1
 
@@ -36,7 +38,7 @@ def parse_results(res, students, M):
             i += 1
 
 def output_csv(students):
-    with open('out.csv', 'w') as f:
+    with open(CSV_OUT, 'w') as f:
         f.write(',' + ','.join([str(i) for i in
                 range(len(students[0].rankings))]) + '\n')
         for student in students:
@@ -67,7 +69,7 @@ def assign_sections(students):
     # set all variables to binary
     lps.lpsolve('set_binary', lp, v)
 
-    lps.lpsolve('write_lp', lp, 'out.lp')
+    lps.lpsolve('write_lp', lp, LP_OUT)
     lps.lpsolve('solve', lp)
     res = lps.lpsolve('get_variables', lp)[0]
     lps.lpsolve('delete_lp', lp)
