@@ -5,8 +5,8 @@ from argparse import ArgumentParser
 
 CSV_OUT = 'out.csv'
 LP_OUT = 'out.lp'
-SECTION_CAP = 1 # currently set to 1 for assigning TAs, real cap is 32
-SECTS_PER_STUD = 2 # currently set to 2 for assigning TAs, use 2 for class
+SECTION_CAP = 32 # currently set to 1 for assigning TAs, real cap is 32
+SECTS_PER_STUD = 1 # currently set to 2 for assigning TAs, use 2 for class
 
 class Student:
     def __init__(self, name, sid, email, rankings):
@@ -31,7 +31,7 @@ def import_students(csv_file):
             students.append(Student(row[0],
                                     int(row[1]),
                                     row[2],
-                                    [num_s - int(s) for s in row[3:]]))
+                                    [int(s) for s in row[3:]]))
     return students
 
 def parse_results(res, students, M):
@@ -73,6 +73,8 @@ def assign_sections(students):
 
     # set all variables to binary
     lps.lpsolve('set_binary', lp, v)
+    # set lp to minimize the objective function
+    lps.lpsolve('set_minim', lp)
 
     lps.lpsolve('write_lp', lp, LP_OUT)
     lps.lpsolve('solve', lp)
