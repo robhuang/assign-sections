@@ -7,16 +7,27 @@ CSV_OUT = 'out.csv'
 LP_OUT = 'out.lp'
 SECTION_CAP = 1 # currently set to 1 for assigning TAs, real cap is 32
 SECTS_PER_STUD = 2 # currently set to 2 for assigning TAs, use 2 for class
-SECTIONS = [i for i in range(11, 44)]
+SECTIONS = tuple(i for i in range(11, 44))
+CONCURR_SECTIONS = ((11, 12, 13), (14, 15, 16), (17, 18, 19), (20, 21),
+                    (22, 23), (24, 25), (26, 27, 28), (30, 31, 32),
+                    (33, 34, 35), (36, 37, 38), (39, 40, 41), (29, 43))
+CONCURR_SECTIONS = tuple(tuple(map(lambda s: SECTIONS.index(s), t))
+                         for t in CONCURR_SECTIONS)
 DEFAULT_RANK = 11
 
 class Student:
-    def __init__(self, name, sid, email, rankings):
+    priorities = []
+
+    def __init__(self, name, sid, email, rankings,
+                 num_sections=SECTS_PER_STUD, priority=0):
         self.name = name
         self.sid = sid
         self.email = email
+        self.num_sections = num_sections
         self.rankings = rankings
+        self.priority = priority
         self.sections = set()
+        Student.priorities.append(priority)
 
     def __repr__(self):
         return 'Student({0}, {1})'.format(self.name, self.sid, self.email,
@@ -42,8 +53,11 @@ def import_students(csv_file):
             name = row[1]
             sid = int(row[3])
             email = row[2]
-            rankings = convert_to_rankings(row[4:])
-            students.append(Student(name, sid, email, rankings))
+            rankings = convert_to_rankings(row[4:-2])
+            num_sections = int(row[-2])
+            priority = int(row[-1])
+            students.append(Student(name, sid, email, rankings,
+                                    num_sections, priority))
     return students
 
 def convert_to_rankings(pref_list):
@@ -84,7 +98,7 @@ def assign_sections(students):
 
     f = make_obj_f(students)
     A = make_coeff_m(M, N)
-    b = make_b_v(M, N)
+    b = make_b_v(students, M, N)
     e = make_e_v(M, N)
     v = [1 for _ in range(M*N)]
 
@@ -102,10 +116,12 @@ def assign_sections(students):
     parse_results(res, students, M)
 
 def make_obj_f(students):
-    l = []
+    coeffs = []
     for student in students:
-        l.extend(student.rankings)
-    return l
+        s_rankings = [r * (max(Student.priorities) - student.priority)
+                      for r in student.rankings]
+        coeffs.extend(s_rankings)
+    return coeffs
 
 def make_coeff_m(M, N):
     m = []
@@ -121,13 +137,28 @@ def make_coeff_m(M, N):
         for y in range(x*M, (x+1)*M):
             tmp_zeroes[y] = 1
         m.append(tmp_zeroes)
+    # COEFFICIENTS TO PREVENT CONCURRENT SECTION ASSIGNMENT
+    if SECTS_PER_STUD > 1:
+        for x in range(N):
+            for concurr_s in CONCURR_SECTIONS:
+                tmp_zeroes = [0 for _ in range(M*N)]
+                for s in concurr_s:
+                    tmp_zeroes[x*M+s] = 1
+                m.append(tmp_zeroes)
     return m
 
-def make_b_v(M, N):
-    return [SECTION_CAP for _ in range(M)] + [SECTS_PER_STUD for _ in range(N)]
+def make_b_v(students, M, N):
+    v = [SECTION_CAP for _ in range(M)] + [student.num_sections for student
+                                           in students]
+    if SECTS_PER_STUD > 1:
+        v += [1 for _ in range(len(CONCURR_SECTIONS) * N)]
+    return v
 
 def make_e_v(M, N):
-    return [-1 for _ in range(M)] + [0 for _ in range(N)]
+    v = [-1 for _ in range(M)] + [0 for _ in range(N)]
+    if SECTS_PER_STUD > 1:
+        v += [-1 for _ in range(len(CONCURR_SECTIONS) * N)]
+    return v
 
 def main(csv_file):
     students = import_students(csv_file)
