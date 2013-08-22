@@ -30,25 +30,35 @@ class Student:
         self.sections = set()
         Student.priorities.append(priority)
 
-    def __repr__(self):
-        return 'Student({0}, {1})'.format(self.name, self.sid, self.email,
-                                          self.rankings)
-
-    def __str__(self):
-        return '{0}: {1}'.format(self.name, self.sections)
-
     @staticmethod
     def display(students):
         for student in students:
             print student
 
+    def __repr__(self):
+        return 'Student({0}, {1})'.format(self.name, self.sid, self.email,
+                                          self.rankings)
+
+    def __str__(self):
+        return '{0}: {1}'.format(self.name, ', '.join((str(s) for s in
+                                                       self.sections)))
+
+    def __eq__(self, other):
+        if not isinstance(other, Student):
+            raise TypeError('can only compare with a Student')
+        return other.name == self.name and other.sid == self.sid
+
+    def __hash__(self):
+        return hash(self.name + str(self.sid))
+
+
 def import_students(csv_file, prioritize=False):
     """
     Returns a list of students with their specified rankings.
     """
+    students = set()
     with open(csv_file, 'rU') as f:
         csvreader = csv.reader(f)
-        students = []
         num_s = len(csvreader.next()) - 3 # ignore first line -- headers
         for row in csvreader:
             name = row[1]
@@ -58,14 +68,17 @@ def import_students(csv_file, prioritize=False):
                 rankings = convert_to_rankings(row[4:-2])
                 num_sections = int(row[-2])
                 priority = int(row[-1])
-                students.append(Student(name, sid, email, rankings,
-                                        num_sections, priority))
+                stud = Student(name, sid, email, rankings, num_sections,
+                               priority)
+                students.discard(stud)
+                students.add(stud)
             else:
                 rankings = convert_to_rankings(row[4:-1])
                 num_sections = int(row[-1])
-                students.append(Student(name, sid, email, rankings,
-                                        num_sections))
-    return students
+                stud = Student(name, sid, email, rankings, num_sections)
+                students.discard(stud)
+                students.add(stud)
+    return sorted(students, key=lambda s: s.name.split()[-1])
 
 def convert_to_rankings(pref_list):
     rankings = [DEFAULT_RANK for _ in SECTIONS]
