@@ -14,6 +14,7 @@ CONCURR_SECTIONS = ((11, 12, 13), (14, 15, 16), (17, 18, 19), (20, 21),
 CONCURR_SECTIONS = tuple(tuple(map(lambda s: SECTIONS.index(s), t))
                          for t in CONCURR_SECTIONS)
 DEFAULT_RANK = 11
+SEN_WEIGHT = 1.2
 
 class Student:
     priorities = []
@@ -118,9 +119,10 @@ def assign_sections(students):
 def make_obj_f(students):
     coeffs = []
     for student in students:
-        s_rankings = [r * (max(Student.priorities) - student.priority)
+        s_rankings = [(r+1) * (max(Student.priorities)-student.priority+1)
                       for r in student.rankings]
         coeffs.extend(s_rankings)
+    print coeffs
     return coeffs
 
 def make_coeff_m(M, N):
