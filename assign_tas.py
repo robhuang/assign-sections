@@ -46,7 +46,7 @@ class Student:
     def __eq__(self, other):
         if not isinstance(other, Student):
             raise TypeError('can only compare with a Student')
-        return other.name == self.name and other.email == self.email
+        return other.name == self.name and other.sid == self.sid
 
     def __hash__(self):
         return hash(self.name + str(self.sid))
