@@ -5,8 +5,10 @@ from argparse import ArgumentParser
 
 CSV_OUT = 'out.csv'
 LP_OUT = 'out.lp'
-SECTION_CAP = 32 # currently set to 1 for assigning TAs, real cap is 32
-SECTS_PER_STUD = 1 # currently set to 2 for assigning TAs, use 2 for class
+SECTION_CAP = 1 # currently set to 1 for assigning TAs, real cap is 32
+SECTS_PER_STUD = 2 # currently set to 2 for assigning TAs, use 2 for class
+SECTIONS = [i for i in range(11, 44)]
+DEFAULT_RANK = 11
 
 class Student:
     def __init__(self, name, sid, email, rankings):
@@ -17,7 +19,16 @@ class Student:
         self.sections = set()
 
     def __repr__(self):
-        return 'Student({0}, {1})'.format(self.name, self.sections)
+        return 'Student({0}, {1})'.format(self.name, self.sid, self.email,
+                                          self.rankings)
+
+    def __str__(self):
+        return '{0}: {1}'.format(self.name, self.sections)
+
+    @staticmethod
+    def display(students):
+        for student in students:
+            print student
 
 def import_students(csv_file):
     """
@@ -28,18 +39,26 @@ def import_students(csv_file):
         students = []
         num_s = len(csvreader.next()) - 3 # ignore first line -- headers
         for row in csvreader:
-            students.append(Student(row[0],
-                                    int(row[1]),
-                                    row[2],
-                                    [int(s) for s in row[3:]]))
+            name = row[1]
+            sid = int(row[3])
+            email = row[2]
+            rankings = convert_to_rankings(row[4:])
+            students.append(Student(name, sid, email, rankings))
     return students
+
+def convert_to_rankings(pref_list):
+    rankings = [DEFAULT_RANK for _ in SECTIONS]
+    for i, s in enumerate(pref_list):
+        section = int(s.split()[0])
+        rankings[SECTIONS.index(section)] = i
+    return rankings
 
 def parse_results(res, students, M):
     i = 0
     for student in students:
         for section in range(M):
             if res[i] == 1:
-                student.sections.add(section)
+                student.sections.add(SECTIONS[section])
             i += 1
 
 def output_csv(students):
@@ -113,7 +132,7 @@ def make_e_v(M, N):
 def main(csv_file):
     students = import_students(csv_file)
     assign_sections(students)
-    print students
+    Student.display(students)
     output_csv(students)
 
 if __name__ == '__main__':
