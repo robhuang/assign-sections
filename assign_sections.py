@@ -26,12 +26,12 @@ def import_students(csv_file):
     with open(csv_file, 'rU') as f:
         csvreader = csv.reader(f)
         students = []
-        num_s = len(csvreader.next()) - 1 # ignore first line -- headers
+        num_s = len(csvreader.next()) - 3 # ignore first line -- headers
         for row in csvreader:
             students.append(Student(row[0],
                                     int(row[1]),
                                     row[2],
-                                    [num_s - int(s) for s in row[1:]]))
+                                    [num_s - int(s) for s in row[3:]]))
     return students
 
 def parse_results(res, students, M):
@@ -44,7 +44,7 @@ def parse_results(res, students, M):
 
 def output_csv(students):
     with open(CSV_OUT, 'w') as f:
-        f.write(',' + ','.join([str(i) for i in
+        f.write('student,sid,email,' + ','.join([str(i) for i in
                 range(len(students[0].rankings))]) + '\n')
         for student in students:
             line = ['TRUE' if x in student.sections else '' for x in
