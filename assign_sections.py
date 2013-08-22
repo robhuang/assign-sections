@@ -42,7 +42,7 @@ class Student:
         for student in students:
             print student
 
-def import_students(csv_file):
+def import_students(csv_file, prioritize=False):
     """
     Returns a list of students with their specified rankings.
     """
@@ -54,11 +54,17 @@ def import_students(csv_file):
             name = row[1]
             sid = int(row[3])
             email = row[2]
-            rankings = convert_to_rankings(row[4:-2])
-            num_sections = int(row[-2])
-            priority = int(row[-1])
-            students.append(Student(name, sid, email, rankings,
-                                    num_sections, priority))
+            if prioritize:
+                rankings = convert_to_rankings(row[4:-2])
+                num_sections = int(row[-2])
+                priority = int(row[-1])
+                students.append(Student(name, sid, email, rankings,
+                                        num_sections, priority))
+            else:
+                rankings = convert_to_rankings(row[4:-1])
+                num_sections = int(row[-1])
+                students.append(Student(name, sid, email, rankings,
+                                        num_sections))
     return students
 
 def convert_to_rankings(pref_list):
@@ -76,16 +82,7 @@ def parse_results(res, students, M):
                 student.sections.add(SECTIONS[section])
             i += 1
 
-def output_csv(students):
-    with open(CSV_OUT, 'w') as f:
-        f.write('student,sid,email,' + ','.join([str(i) for i in
-                range(len(students[0].rankings))]) + '\n')
-        for student in students:
-            line = ['TRUE' if x in student.sections else '' for x in
-                    range(len(student.rankings))]
-            f.write(student.name + ',' + ','.join(line) + '\n')
-
-def assign_sections(students):
+def assign_sections(students, prioritize=False):
     """
     students: a list of student objects
     i = index of sections
@@ -97,7 +94,7 @@ def assign_sections(students):
     M = len(students[0].rankings) # number of section
     N = len(students)             # number of students
 
-    f = make_obj_f(students)
+    f = make_obj_f(students, prioritize)
     A = make_coeff_m(M, N)
     b = make_b_v(students, M, N)
     e = make_e_v(M, N)
@@ -116,13 +113,15 @@ def assign_sections(students):
     lps.lpsolve('delete_lp', lp)
     parse_results(res, students, M)
 
-def make_obj_f(students):
+def make_obj_f(students, prioritize):
     coeffs = []
     for student in students:
-        s_rankings = [(r+1) * (max(Student.priorities)-student.priority+1)
-                      for r in student.rankings]
+        if prioritize:
+            s_rankings = [(r+1) * (max(Student.priorities)-student.priority+1)
+                          for r in student.rankings]
+        else:
+            s_rankings = [r+1 for r in student.rankings]
         coeffs.extend(s_rankings)
-    print coeffs
     return coeffs
 
 def make_coeff_m(M, N):
@@ -162,14 +161,14 @@ def make_e_v(M, N):
         v += [-1 for _ in range(len(CONCURR_SECTIONS) * N)]
     return v
 
-def main(csv_file):
-    students = import_students(csv_file)
-    assign_sections(students)
+def main(csv_file, prioritize):
+    students = import_students(csv_file, prioritize)
+    assign_sections(students, prioritize)
     Student.display(students)
-    output_csv(students)
 
 if __name__ == '__main__':
     parser = ArgumentParser(description='creates optimal section assignment')
+    parser.add_argument('-p', '--prioritize', action='store_true', help='give students with seniority priority')
     parser.add_argument('csv_file', help='csv file with section rankings')
     args = parser.parse_args()
-    main(args.csv_file)
+    main(args.csv_file, args.prioritize)
