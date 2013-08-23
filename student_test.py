@@ -2,7 +2,6 @@ import random
 import string
 
 HEADER = 'Timestamp,What is your name?,What is your email?,What is your student ID number?,What is your top section time choice?,What is your second choice?,What is your third choice?,What is your fourth choice?,What is your fifth choice?'
-
 TIMES = ('M 0330-0500 PM W 0400-0530 PM',
          'M 0500-0630 PM W 0500-0630 PM',
          'M 0500-0630 PM W 0530-0700 PM',
@@ -32,7 +31,16 @@ def random_student():
            name, random.randint(0, 99999999), ','.join(TIMES[i] for i in
            INDICES[:5]))
 
-with open('student_test.csv', 'w') as f:
-    f.write(HEADER)
-    for _ in range(1000):
-        f.write('{}\n'.format(random_student()))
+def main():
+    for _ in range(5):
+        temp = []
+        for _ in range(random.randint(3, 15)):
+            temp.append(random.choice(INDICES))
+        INDICES.extend(temp)
+    with open('student_test.csv', 'w') as f:
+        f.write(HEADER)
+        for _ in range(1000):
+            f.write('{}\n'.format(random_student()))
+
+if __name__ == '__main__':
+    main()
