@@ -7,25 +7,25 @@ from collections import OrderedDict
 
 CSV_OUT = 'out.csv'
 LP_OUT = 'out.lp'
-SECTION_CAP = 1 # currently set to 1 for assigning TAs, real cap is 32
+SECTION_CAP = 32 # currently set to 1 for assigning TAs, real cap is 32
 SECTS_PER_STUD = 1 # currently set to 2 for assigning TAs, use 2 for class
-SECTIONS = {'M 0330-0500 PM W 0400-0530 PM': (130, 131, 132),
-            'M 0500-0630 PM W 0500-0630 PM': (135,),
-            'M 0500-0630 PM W 0530-0700 PM': (133, 134),
-            'M 0630-0800 PM W 0630-0800 PM': (138,),
-            'M 0630-0800 PM W 0700-0830 PM': (136, 137),
-            'Tu 0930-1100 AM Th 0930-1100 AM': (111, 112, 113),
-            'Tu 1100-1230 PM Th 1100-1230 PM': (114, 115, 116),
-            'Tu 1230-0200 PM Th 1230-0200 PM': (117, 118, 119),
-            'Tu 0200-0330 PM Th 0200-0330 PM': (120, 121),
-            'Tu 0330-0500 PM Th 0330-0500 PM': (122, 123),
-            'Tu 0500-0630 PM Th 0500-0630 PM': (124, 125),
-            'Tu 0630-0800 PM Th 0630-0800 PM': (126, 127, 128),
-            'Tu 0800-0930 PM Th 0800-0930 PM': (139, 140, 141),
-            'W 0830-1000 AM F 0830-1000 AM': (143,),
-            'W 0900-1030 AM F 0930-1100 AM': (129,),
-            'W 1030-1200 PM F 1100-1230 PM': (142,)}
-SECTIONS = OrderedDict(SECTIONS)
+SECTIONS_TUP = (('M 0330-0500 PM W 0400-0530 PM', (30, 31, 32)),
+                ('M 0500-0630 PM W 0500-0630 PM', (35,)),
+                ('M 0500-0630 PM W 0530-0700 PM', (33, 34)),
+                ('M 0630-0800 PM W 0630-0800 PM', (38,)),
+                ('M 0630-0800 PM W 0700-0830 PM', (36, 37)),
+                ('Tu 0930-100 AM Th 0930-100 AM', (11, 12, 13)),
+                ('Tu 100-230 PM Th 100-230 PM', (14, 15, 16)),
+                ('Tu 230-0200 PM Th 230-0200 PM', (17, 18, 19)),
+                ('Tu 0200-0330 PM Th 0200-0330 PM', (20, 21)),
+                ('Tu 0330-0500 PM Th 0330-0500 PM', (22, 23)),
+                ('Tu 0500-0630 PM Th 0500-0630 PM', (24, 25)),
+                ('Tu 0630-0800 PM Th 0630-0800 PM', (26, 27, 28)),
+                ('Tu 0800-0930 PM Th 0800-0930 PM', (39, 40, 41)),
+                ('W 0830-000 AM F 0830-000 AM', (43,)),
+                ('W 0900-030 AM F 0930-100 AM', (29,)),
+                ('W 030-200 PM F 100-230 PM', (42,)))
+SECTIONS = OrderedDict(SECTIONS_TUP)
 CONCURR_SECTIONS = ()
 DEFAULT_RANK = 6
 
@@ -98,10 +98,16 @@ def convert_to_rankings(pref_list):
 
 def parse_results(res, students, M):
     i = 0
+    sects_enroll = dict((s, SECTION_CAP) for sects in SECTIONS.values() for s in
+                        sects)
     for student in students:
         for section in range(M):
             if res[i] == 1:
-                student.sections.add(random.choice(SECTIONS[section]))
+                possible_sects = filter(lambda s: sects_enroll[s] > 0,
+                                        SECTIONS[SECTIONS.keys()[section]])
+                random_sect = random.choice(possible_sects)
+                student.sections.add(random_sect)
+                sects_enroll[random_sect] -= 1
             i += 1
 
 def assign_sections(students, prioritize=False):
@@ -171,8 +177,8 @@ def make_coeff_m(M, N):
     return m
 
 def make_b_v(students, M, N):
-    v = [SECTION_CAP for _ in range(M)] + [student.num_sections for student
-                                           in students]
+    v = [len(s) * SECTION_CAP for s in SECTIONS.values()] + \
+        [student.num_sections for student in students]
     if SECTS_PER_STUD > 1:
         v += [1 for _ in range(len(CONCURR_SECTIONS) * N)]
     return v
