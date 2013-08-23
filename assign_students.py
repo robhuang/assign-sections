@@ -65,7 +65,7 @@ class Student:
         return hash(self.name + str(self.sid))
 
 
-def import_students(csv_file, prioritize=False):
+def import_students(csv_file, prioritize=False, analyze=False):
     """
     Returns a list of students with their specified rankings.
     """
@@ -81,13 +81,15 @@ def import_students(csv_file, prioritize=False):
                 rankings = convert_to_rankings(row[4:-2])
                 priority = int(row[-1])
                 stud = Student(name, sid, email, rankings, priority=priority)
-                students.discard(stud)
-                students.add(stud)
+                if analyze:
+                    stud.prefs = row[4:-2]
             else:
                 rankings = convert_to_rankings(row[4:-1])
                 stud = Student(name, sid, email, rankings)
-                students.discard(stud)
-                students.add(stud)
+                if analyze:
+                    stud.prefs = row[4:-1]
+            students.discard(stud)
+            students.add(stud)
     return sorted(students, key=lambda s: s.name.split()[-1])
 
 def convert_to_rankings(pref_list):
@@ -96,10 +98,12 @@ def convert_to_rankings(pref_list):
         rankings[SECTIONS.keys().index(s)] = i
     return rankings
 
-def parse_results(res, students, M):
+def parse_results(res, students, M, analyze=False):
     i = 0
     sects_enroll = dict((s, SECTION_CAP) for sects in SECTIONS.values() for s in
                         sects)
+    if analyze:
+        ranks = []
     for student in students:
         for section in range(M):
             if res[i] == 1:
@@ -108,9 +112,18 @@ def parse_results(res, students, M):
                 random_sect = random.choice(possible_sects)
                 student.sections.add(random_sect)
                 sects_enroll[random_sect] -= 1
+                if analyze:
+                    try:
+                        ranks.append(student.prefs.index(
+                                         SECTIONS.keys()[section]))
+                    except ValueError:
+                        ranks.append(5)
             i += 1
+    if analyze:
+        print 'min: {0}, max: {1}, mean: {2}'.format(min(ranks), max(ranks),
+                                                     sum(ranks)/len(ranks))
 
-def assign_sections(students, prioritize=False):
+def assign_sections(students, prioritize=False, analyze=False):
     """
     students: a list of student objects
     i = index of sections
@@ -139,7 +152,7 @@ def assign_sections(students, prioritize=False):
     lps.lpsolve('solve', lp)
     res = lps.lpsolve('get_variables', lp)[0]
     lps.lpsolve('delete_lp', lp)
-    parse_results(res, students, M)
+    parse_results(res, students, M, analyze)
 
 def make_obj_f(students, prioritize):
     coeffs = []
@@ -189,14 +202,15 @@ def make_e_v(M, N):
         v += [-1 for _ in range(len(CONCURR_SECTIONS) * N)]
     return v
 
-def main(csv_file, prioritize):
-    students = import_students(csv_file, prioritize)
-    assign_sections(students, prioritize)
+def main(csv_file, prioritize, analyze):
+    students = import_students(csv_file, prioritize, analyze)
+    assign_sections(students, prioritize, analyze)
     Student.display(students)
 
 if __name__ == '__main__':
     parser = ArgumentParser(description='creates optimal section assignment')
     parser.add_argument('-p', '--prioritize', action='store_true', help='give students with seniority priority')
+    parser.add_argument('-a', '--analyze', action='store_true', help='analyze results')
     parser.add_argument('csv_file', help='csv file with section rankings')
     args = parser.parse_args()
-    main(args.csv_file, args.prioritize)
+    main(args.csv_file, args.prioritize, args.analyze)
