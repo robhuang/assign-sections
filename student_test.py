@@ -34,7 +34,7 @@ def random_student():
 def main():
     for _ in range(5):
         temp = []
-        for _ in range(random.randint(3, 15)):
+        for _ in range(random.randint(1, 4)):
             temp.append(random.choice(INDICES))
         INDICES.extend(temp)
     with open('student_test.csv', 'w') as f:
