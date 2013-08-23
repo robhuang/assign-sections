@@ -1,4 +1,5 @@
 import csv
+import random
 import lp_maker as lpm
 import lpsolve55 as lps
 from argparse import ArgumentParser
@@ -100,7 +101,7 @@ def parse_results(res, students, M):
     for student in students:
         for section in range(M):
             if res[i] == 1:
-                student.sections.add(SECTIONS[section])
+                student.sections.add(random.choice(SECTIONS[section]))
             i += 1
 
 def assign_sections(students, prioritize=False):
