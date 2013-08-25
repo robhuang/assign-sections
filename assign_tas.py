@@ -6,7 +6,7 @@ from argparse import ArgumentParser
 CSV_OUT = 'out.csv'
 LP_OUT = 'out.lp'
 SECTION_CAP = 1 # currently set to 1 for assigning TAs, real cap is 32
-SECTS_PER_STUD = 2 # currently set to 2 for assigning TAs, use 2 for class
+SECTS_PER_TA = 2 # currently set to 2 for assigning TAs, use 2 for class
 SECTIONS = tuple(i for i in range(11, 44))
 CONCURR_SECTIONS = ((11, 12, 13), (14, 15, 16), (17, 18, 19), (20, 21),
                     (22, 23), (24, 25), (26, 27, 28), (30, 31, 32),
@@ -20,7 +20,7 @@ class TA:
     priorities = []
 
     def __init__(self, name, sid, email, rankings,
-                 num_sections=SECTS_PER_STUD, priority=0):
+                 num_sections=SECTS_PER_TA, priority=0):
         self.name = name
         self.sid = sid
         self.email = email
@@ -68,20 +68,19 @@ def import_tas(csv_file, prioritize=False, analyze=False):
                 rankings = convert_to_rankings(row[4:-2])
                 num_sections = int(row[-2])
                 priority = int(row[-1])
-                stud = TA(name, sid, email, rankings, num_sections,
-                               priority)
-                tas.discard(stud)
-                tas.add(stud)
+                ta = TA(name, sid, email, rankings, num_sections, priority)
+                tas.discard(ta)
+                tas.add(ta)
                 if analyze:
-                    stud.prefs = [int(s.split()[0]) for s in row[4:-2]]
+                    ta.prefs = [int(s.split()[0]) for s in row[4:-2]]
             else:
                 rankings = convert_to_rankings(row[4:-1])
                 num_sections = int(row[-1])
-                stud = TA(name, sid, email, rankings, num_sections)
-                tas.discard(stud)
-                tas.add(stud)
+                ta = TA(name, sid, email, rankings, num_sections)
+                tas.discard(ta)
+                tas.add(ta)
                 if analyze:
-                    stud.prefs = [int(s.split()[0]) for s in row[4:-1]]
+                    ta.prefs = [int(s.split()[0]) for s in row[4:-1]]
     return sorted(tas, key=lambda s: s.name.split()[-1])
 
 def convert_to_rankings(pref_list):
@@ -181,7 +180,7 @@ def make_coeff_m(M, N):
             tmp_zeroes[y] = 1
         m.append(tmp_zeroes)
     # COEFFICIENTS TO PREVENT CONCURRENT SECTION ASSIGNMENT
-    if SECTS_PER_STUD > 1:
+    if SECTS_PER_TA > 1:
         for x in range(N):
             for concurr_s in CONCURR_SECTIONS:
                 tmp_zeroes = [0 for _ in range(M*N)]
@@ -191,15 +190,14 @@ def make_coeff_m(M, N):
     return m
 
 def make_b_v(tas, M, N):
-    v = [SECTION_CAP for _ in range(M)] + [ta.num_sections for ta
-                                           in tas]
-    if SECTS_PER_STUD > 1:
+    v = [SECTION_CAP for _ in range(M)] + [ta.num_sections for ta in tas]
+    if SECTS_PER_TA > 1:
         v += [1 for _ in range(len(CONCURR_SECTIONS) * N)]
     return v
 
 def make_e_v(M, N):
     v = [-1 for _ in range(M)] + [0 for _ in range(N)]
-    if SECTS_PER_STUD > 1:
+    if SECTS_PER_TA > 1:
         v += [-1 for _ in range(len(CONCURR_SECTIONS) * N)]
     return v
 
