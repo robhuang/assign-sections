@@ -14,7 +14,6 @@ CONCURR_SECTIONS = ((11, 12, 13), (14, 15, 16), (17, 18, 19), (20, 21),
 CONCURR_SECTIONS = tuple(tuple(map(lambda s: SECTIONS.index(s), t))
                          for t in CONCURR_SECTIONS)
 DEFAULT_RANK = 10
-SEN_WEIGHT = 1.2
 
 class TA:
     priorities = []
@@ -113,7 +112,7 @@ def parse_results(res, tas, M, analyze=False):
                         print '{}: ranked section {} as {}'.format(
                                 ta.name, chosen_sect, rank+1)
                     except ValueError:
-                        ranks.append(DEFAULT_RANK)
+                        ranks.append(DEFAULT_RANK+1)
                         print '{}: ranked section {} as {}'.format(
                                 ta.name, chosen_sect, DEFAULT_RANK+1)
             i += 1
@@ -220,7 +219,7 @@ def main(csv_file, prioritize, analyze):
 
 if __name__ == '__main__':
     parser = ArgumentParser(description='creates optimal section assignment')
-    parser.add_argument('-p', '--prioritize', action='store_true', help='give tas with seniority priority')
+    parser.add_argument('-p', '--prioritize', action='store_true', help='adjusts the objective function for priorities'
     parser.add_argument('-a', '--analyze', action='store_true', help='analyze results')
     parser.add_argument('csv_file', help='csv file with section rankings')
     args = parser.parse_args()
