@@ -14,17 +14,17 @@ SECTIONS_TUP = (('M 0330-0500 PM W 0400-0530 PM', (30, 31, 32)),
                 ('M 0500-0630 PM W 0530-0700 PM', (33, 34)),
                 ('M 0630-0800 PM W 0630-0800 PM', (38,)),
                 ('M 0630-0800 PM W 0700-0830 PM', (36, 37)),
-                ('Tu 0930-100 AM Th 0930-100 AM', (11, 12, 13)),
-                ('Tu 100-230 PM Th 100-230 PM', (14, 15, 16)),
-                ('Tu 230-0200 PM Th 230-0200 PM', (17, 18, 19)),
+                ('Tu 0930-1000 AM Th 0930-1000 AM', (11, 12, 13)),
+                ('Tu 0100-0230 PM Th 0100-0230 PM', (14, 15, 16)),
+                ('Tu 0230-0200 PM Th 0230-0200 PM', (17, 18, 19)),
                 ('Tu 0200-0330 PM Th 0200-0330 PM', (20, 21)),
                 ('Tu 0330-0500 PM Th 0330-0500 PM', (22, 23)),
                 ('Tu 0500-0630 PM Th 0500-0630 PM', (24, 25)),
                 ('Tu 0630-0800 PM Th 0630-0800 PM', (26, 27, 28)),
                 ('Tu 0800-0930 PM Th 0800-0930 PM', (39, 40, 41)),
-                ('W 0830-000 AM F 0830-000 AM', (43,)),
-                ('W 0900-030 AM F 0930-100 AM', (29,)),
-                ('W 030-200 PM F 100-230 PM', (42,)))
+                ('W 0830-1000 AM F 0830-1000 AM', (43,)),
+                ('W 0900-1030 AM F 0930-1100 AM', (29,)),
+                ('W 1030-1200 PM F 1030-1200 PM', (42,)))
 SECTIONS = OrderedDict(SECTIONS_TUP)
 CONCURR_SECTIONS = ()
 DEFAULT_RANK = 6
@@ -117,7 +117,7 @@ def parse_results(res, students, M, analyze=False):
                         ranks.append(student.prefs.index(
                                          SECTIONS.keys()[section]))
                     except ValueError:
-                        ranks.append(5)
+                        ranks.append(DEFAULT_RANK)
             i += 1
     if analyze:
         print 'min: {0}, max: {1}, mean: {2}'.format(min(ranks), max(ranks),
