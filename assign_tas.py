@@ -118,7 +118,7 @@ def parse_results(res, tas, M, analyze=False):
             i += 1
     if analyze:
         print 'min: {0}, max: {1}, mean: {2}'.format(min(ranks), max(ranks),
-                                                     sum(ranks)/len(ranks))
+                                                     sum(ranks)/float(len(ranks)))
 
 def assign_sections(tas, prioritize=False, analyze=False):
     """
@@ -216,6 +216,14 @@ def main(csv_file, prioritize, analyze):
     tas = import_tas(csv_file, prioritize, analyze)
     assign_sections(tas, prioritize, analyze)
     TA.display(tas)
+    # verify all sections are assigned
+    sections = set()
+    for ta in tas:
+        for section in ta.sections:
+            sections.add(section)
+    if len(sections) != len(SECTIONS):
+        print 'WARNING: did not assign all section. There are {0} sections.\
+        {1} have been assigned.'.format(len(SECTIONS), len(sections))
 
 if __name__ == '__main__':
     parser = ArgumentParser(description='creates optimal section assignment')
