@@ -169,7 +169,7 @@ def make_obj_f(tas, prioritize):
 
 def make_coeff_m(M, N):
     """
-    Returns a list of coefficients for the matrix.
+    Returns a list of coefficients for the constraints matrix.
     """
     m = []
     # COEFFICIENTS FOR CONSTRAINTS ON SECTION CAPS
@@ -196,7 +196,7 @@ def make_coeff_m(M, N):
 
 def make_b_v(tas, M, N):
     """
-    Returns a list of coefficients for the b vector.
+    Returns a list of coefficients for the b vector for constraints.
     """
     v = [SECTION_CAP for _ in range(M)] + [ta.num_sections for ta in tas]
     if SECTS_PER_TA > 1:
@@ -205,7 +205,7 @@ def make_b_v(tas, M, N):
 
 def make_e_v(M, N):
     """
-    Returns a list of coefficients for the equality vector.
+    Returns a list of coefficients for the equality vector for constraints.
     """
     v = [-1 for _ in range(M)] + [0 for _ in range(N)]
     if SECTS_PER_TA > 1:
