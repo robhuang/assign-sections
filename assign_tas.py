@@ -219,7 +219,7 @@ def main(csv_file, prioritize, analyze):
 
 if __name__ == '__main__':
     parser = ArgumentParser(description='creates optimal section assignment')
-    parser.add_argument('-p', '--prioritize', action='store_true', help='adjusts the objective function for priorities'
+    parser.add_argument('-p', '--prioritize', action='store_true', help='adjusts the objective function for priorities')
     parser.add_argument('-a', '--analyze', action='store_true', help='analyze results')
     parser.add_argument('csv_file', help='csv file with section rankings')
     args = parser.parse_args()
