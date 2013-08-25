@@ -13,7 +13,7 @@ CONCURR_SECTIONS = ((11, 12, 13), (14, 15, 16), (17, 18, 19), (20, 21),
                     (33, 34, 35), (36, 37, 38), (39, 40, 41), (29, 43))
 CONCURR_SECTIONS = tuple(tuple(map(lambda s: SECTIONS.index(s), t))
                          for t in CONCURR_SECTIONS)
-DEFAULT_RANK = 11
+DEFAULT_RANK = 10
 SEN_WEIGHT = 1.2
 
 class Student:
@@ -105,11 +105,11 @@ def parse_results(res, students, M, analyze=False):
                         rank = student.prefs.index(chosen_sect)
                         ranks.append(rank)
                         print '{}: ranked section {} as {}'.format(
-                                student.name, chosen_sect, rank)
+                                student.name, chosen_sect, rank+1)
                     except ValueError:
                         ranks.append(DEFAULT_RANK)
                         print '{}: ranked section {} as {}'.format(
-                                student.name, chosen_sect, DEFAULT_RANK)
+                                student.name, chosen_sect, DEFAULT_RANK+1)
             i += 1
     if analyze:
         print 'min: {0}, max: {1}, mean: {2}'.format(min(ranks), max(ranks),
