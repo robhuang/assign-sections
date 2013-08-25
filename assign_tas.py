@@ -101,21 +101,23 @@ def parse_results(res, tas, M, analyze=False):
     if analyze:
         ranks = []
     for ta in tas:
+        if analyze:
+            ta_ranks = []
         for section in range(M):
             if res[i] == 1:
                 chosen_sect = SECTIONS[section]
                 ta.sections.add(chosen_sect)
                 if analyze:
                     try:
-                        rank = ta.prefs.index(chosen_sect)
-                        ranks.append(rank)
-                        print '{}: ranked section {} as {}'.format(
-                                ta.name, chosen_sect, rank+1)
+                        rank = ta.prefs.index(chosen_sect)+1
                     except ValueError:
-                        ranks.append(DEFAULT_RANK+1)
-                        print '{}: ranked section {} as {}'.format(
-                                ta.name, chosen_sect, DEFAULT_RANK+1)
+                        rank = DEFAULT_RANK+1
+                    ta_ranks.append(rank)
+                    print '{}: ranked section {} as {}'.format(
+                            ta.name, chosen_sect, rank)
             i += 1
+        if analyze:
+            ranks.append(sum(ta_ranks)/float(len(ta_ranks)))
     if analyze:
         print 'min: {0}, max: {1}, mean: {2}'.format(min(ranks), max(ranks),
                                                      sum(ranks)/float(len(ranks)))
@@ -163,7 +165,7 @@ def make_obj_f(tas, prioritize):
             s_rankings = [(r+1) * (max(ta.priorities)-ta.priority+1)
                           for r in ta.rankings]
         else:
-            s_rankings = [r+1 for r in ta.rankings]
+            s_rankings = [(r+1)**2 for r in ta.rankings]
         coeffs.extend(s_rankings)
     return coeffs
 
