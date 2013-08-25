@@ -155,6 +155,9 @@ def assign_sections(tas, prioritize=False, analyze=False):
     parse_results(res, tas, M, analyze)
 
 def make_obj_f(tas, prioritize):
+    """
+    Returns a list of coefficients for the objective function.
+    """
     coeffs = []
     for ta in tas:
         if prioritize:
@@ -166,6 +169,9 @@ def make_obj_f(tas, prioritize):
     return coeffs
 
 def make_coeff_m(M, N):
+    """
+    Returns a list of coefficients for the matrix.
+    """
     m = []
     # COEFFICIENTS FOR CONSTRAINTS ON SECTION CAPS
     for x in range(M):
@@ -190,12 +196,18 @@ def make_coeff_m(M, N):
     return m
 
 def make_b_v(tas, M, N):
+    """
+    Returns a list of coefficients for the b vector.
+    """
     v = [SECTION_CAP for _ in range(M)] + [ta.num_sections for ta in tas]
     if SECTS_PER_TA > 1:
         v += [1 for _ in range(len(CONCURR_SECTIONS) * N)]
     return v
 
 def make_e_v(M, N):
+    """
+    Returns a list of coefficients for the equality vector.
+    """
     v = [-1 for _ in range(M)] + [0 for _ in range(N)]
     if SECTS_PER_TA > 1:
         v += [-1 for _ in range(len(CONCURR_SECTIONS) * N)]
