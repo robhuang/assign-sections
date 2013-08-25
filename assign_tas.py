@@ -16,7 +16,7 @@ CONCURR_SECTIONS = tuple(tuple(map(lambda s: SECTIONS.index(s), t))
 DEFAULT_RANK = 10
 SEN_WEIGHT = 1.2
 
-class Student:
+class TA:
     priorities = []
 
     def __init__(self, name, sid, email, rankings,
@@ -28,15 +28,15 @@ class Student:
         self.rankings = rankings
         self.priority = priority
         self.sections = set()
-        Student.priorities.append(priority)
+        TA.priorities.append(priority)
 
     @staticmethod
-    def display(students):
-        for student in students:
-            print student
+    def display(tas):
+        for ta in tas:
+            print ta
 
     def __repr__(self):
-        return 'Student({0}, {1})'.format(self.name, self.sid, self.email,
+        return 'TA({0}, {1})'.format(self.name, self.sid, self.email,
                                           self.rankings)
 
     def __str__(self):
@@ -44,19 +44,19 @@ class Student:
                                                        self.sections)))
 
     def __eq__(self, other):
-        if not isinstance(other, Student):
-            raise TypeError('can only compare with a Student')
+        if not isinstance(other, TA):
+            raise TypeError('can only compare with a TA')
         return other.name == self.name and other.email == self.email
 
     def __hash__(self):
         return hash(self.name + str(self.sid))
 
 
-def import_students(csv_file, prioritize=False, analyze=False):
+def import_tas(csv_file, prioritize=False, analyze=False):
     """
-    Returns a list of students with their specified rankings.
+    Returns a list of tas with their specified rankings.
     """
-    students = set()
+    tas = set()
     with open(csv_file, 'rU') as f:
         csvreader = csv.reader(f)
         num_s = len(csvreader.next()) - 3 # ignore first line -- headers
@@ -68,68 +68,75 @@ def import_students(csv_file, prioritize=False, analyze=False):
                 rankings = convert_to_rankings(row[4:-2])
                 num_sections = int(row[-2])
                 priority = int(row[-1])
-                stud = Student(name, sid, email, rankings, num_sections,
+                stud = TA(name, sid, email, rankings, num_sections,
                                priority)
-                students.discard(stud)
-                students.add(stud)
+                tas.discard(stud)
+                tas.add(stud)
                 if analyze:
                     stud.prefs = [int(s.split()[0]) for s in row[4:-2]]
             else:
                 rankings = convert_to_rankings(row[4:-1])
                 num_sections = int(row[-1])
-                stud = Student(name, sid, email, rankings, num_sections)
-                students.discard(stud)
-                students.add(stud)
+                stud = TA(name, sid, email, rankings, num_sections)
+                tas.discard(stud)
+                tas.add(stud)
                 if analyze:
                     stud.prefs = [int(s.split()[0]) for s in row[4:-1]]
-    return sorted(students, key=lambda s: s.name.split()[-1])
+    return sorted(tas, key=lambda s: s.name.split()[-1])
 
 def convert_to_rankings(pref_list):
+    """
+    Takes in a list of sections, ranking in decreasing order of preference.
+    Returns a list of rankings, in increasing order of sections.
+    """
     rankings = [DEFAULT_RANK for _ in SECTIONS]
     for i, s in enumerate(pref_list):
         section = int(s.split()[0])
         rankings[SECTIONS.index(section)] = i
     return rankings
 
-def parse_results(res, students, M, analyze=False):
+def parse_results(res, tas, M, analyze=False):
+    """
+    Parses the results from the LPSolver and assigns TAs to those sections.
+    """
     i = 0
     if analyze:
         ranks = []
-    for student in students:
+    for ta in tas:
         for section in range(M):
             if res[i] == 1:
                 chosen_sect = SECTIONS[section]
-                student.sections.add(chosen_sect)
+                ta.sections.add(chosen_sect)
                 if analyze:
                     try:
-                        rank = student.prefs.index(chosen_sect)
+                        rank = ta.prefs.index(chosen_sect)
                         ranks.append(rank)
                         print '{}: ranked section {} as {}'.format(
-                                student.name, chosen_sect, rank+1)
+                                ta.name, chosen_sect, rank+1)
                     except ValueError:
                         ranks.append(DEFAULT_RANK)
                         print '{}: ranked section {} as {}'.format(
-                                student.name, chosen_sect, DEFAULT_RANK+1)
+                                ta.name, chosen_sect, DEFAULT_RANK+1)
             i += 1
     if analyze:
         print 'min: {0}, max: {1}, mean: {2}'.format(min(ranks), max(ranks),
                                                      sum(ranks)/len(ranks))
 
-def assign_sections(students, prioritize=False, analyze=False):
+def assign_sections(tas, prioritize=False, analyze=False):
     """
-    students: a list of student objects
+    tas: a list of ta objects
     i = index of sections
-    j = index of students
+    j = index of tas
     The columns, x_i_j, go as follows:
         x_0_0, x_1_0, x_2_0, ..., x_0_1, ..., x_M_N
     """
 
-    M = len(students[0].rankings) # number of section
-    N = len(students)             # number of students
+    M = len(tas[0].rankings) # number of section
+    N = len(tas)             # number of tas
 
-    f = make_obj_f(students, prioritize)
+    f = make_obj_f(tas, prioritize)
     A = make_coeff_m(M, N)
-    b = make_b_v(students, M, N)
+    b = make_b_v(tas, M, N)
     e = make_e_v(M, N)
     v = [1 for _ in range(M*N)]
 
@@ -146,16 +153,16 @@ def assign_sections(students, prioritize=False, analyze=False):
     lps.lpsolve('solve', lp)
     res = lps.lpsolve('get_variables', lp)[0]
     lps.lpsolve('delete_lp', lp)
-    parse_results(res, students, M, analyze)
+    parse_results(res, tas, M, analyze)
 
-def make_obj_f(students, prioritize):
+def make_obj_f(tas, prioritize):
     coeffs = []
-    for student in students:
+    for ta in tas:
         if prioritize:
-            s_rankings = [(r+1) * (max(Student.priorities)-student.priority+1)
-                          for r in student.rankings]
+            s_rankings = [(r+1) * (max(ta.priorities)-ta.priority+1)
+                          for r in ta.rankings]
         else:
-            s_rankings = [r+1 for r in student.rankings]
+            s_rankings = [r+1 for r in ta.rankings]
         coeffs.extend(s_rankings)
     return coeffs
 
@@ -167,7 +174,7 @@ def make_coeff_m(M, N):
         for y in range(x, M*N, M):
             tmp_zeroes[y] = 1
         m.append(tmp_zeroes)
-    # COEFFICIENTS FOR CONSTRAINTS ON NUMBER OF SECTIONS PER STUDENT
+    # COEFFICIENTS FOR CONSTRAINTS ON NUMBER OF SECTIONS PER ta
     for x in range(N):
         tmp_zeroes = [0 for _ in range(M*N)]
         for y in range(x*M, (x+1)*M):
@@ -183,9 +190,9 @@ def make_coeff_m(M, N):
                 m.append(tmp_zeroes)
     return m
 
-def make_b_v(students, M, N):
-    v = [SECTION_CAP for _ in range(M)] + [student.num_sections for student
-                                           in students]
+def make_b_v(tas, M, N):
+    v = [SECTION_CAP for _ in range(M)] + [ta.num_sections for ta
+                                           in tas]
     if SECTS_PER_STUD > 1:
         v += [1 for _ in range(len(CONCURR_SECTIONS) * N)]
     return v
@@ -197,13 +204,13 @@ def make_e_v(M, N):
     return v
 
 def main(csv_file, prioritize, analyze):
-    students = import_students(csv_file, prioritize, analyze)
-    assign_sections(students, prioritize, analyze)
-    Student.display(students)
+    tas = import_tas(csv_file, prioritize, analyze)
+    assign_sections(tas, prioritize, analyze)
+    TA.display(tas)
 
 if __name__ == '__main__':
     parser = ArgumentParser(description='creates optimal section assignment')
-    parser.add_argument('-p', '--prioritize', action='store_true', help='give students with seniority priority')
+    parser.add_argument('-p', '--prioritize', action='store_true', help='give tas with seniority priority')
     parser.add_argument('-a', '--analyze', action='store_true', help='analyze results')
     parser.add_argument('csv_file', help='csv file with section rankings')
     args = parser.parse_args()
