@@ -94,8 +94,10 @@ def import_students(csv_file, prioritize=False, analyze=False):
 
 def convert_to_rankings(pref_list):
     rankings = [DEFAULT_RANK for _ in SECTIONS]
-    for i, s in enumerate(pref_list):
-        rankings[SECTIONS.keys().index(s)] = i
+    for rank, s in enumerate(pref_list):
+        index = SECTIONS.keys().index(s)
+        if rankings[index] != DEFAULT_RANK:
+            rankings[index] = rank
     return rankings
 
 def parse_results(res, students, M, analyze=False):
