@@ -27,7 +27,7 @@ SECTIONS_TUP = (('M 0330-0500 PM W 0400-0530 PM', (30, 31, 32)),
                 ('W 1030-1200 PM F 1030-1200 PM', (42,)))
 SECTIONS = OrderedDict(SECTIONS_TUP)
 CONCURR_SECTIONS = ()
-DEFAULT_RANK = 6
+DEFAULT_RANK = 8
 
 class Student:
     priorities = []
@@ -72,7 +72,6 @@ class Student:
     def __hash__(self):
         return hash(self.email)
 
-
 def import_students(csv_file, prioritize=False, analyze=False):
     """
     Returns a list of students with their specified rankings.
@@ -80,31 +79,33 @@ def import_students(csv_file, prioritize=False, analyze=False):
     students = set()
     with open(csv_file, 'rU') as f:
         csvreader = csv.reader(f)
-        num_s = len(csvreader.next()) - 3 # ignore first line -- headers
+        num_s = len(csvreader.next()) - 4 # first line -- headers
         for row in csvreader:
             name = row[1]
             sid = int(row[3])
             email = row[2]
             if prioritize:
-                rankings = convert_to_rankings(row[4:-2])
+                rankings = convert_to_rankings(row[4:-1])
                 priority = int(row[-1])
                 stud = Student(name, sid, email, rankings, priority=priority)
                 if analyze:
-                    stud.prefs = row[4:-2]
+                    stud.prefs = row[4:-1]
             else:
-                rankings = convert_to_rankings(row[4:-1])
+                rankings = convert_to_rankings(row[4:])
                 stud = Student(name, sid, email, rankings)
                 if analyze:
-                    stud.prefs = row[4:-1]
+                    stud.prefs = row[4:]
             students.discard(stud)
             students.add(stud)
-    return sorted(students, key=lambda s: s.name.split()[-1])
+    students = list(students)
+    random.shuffle(students)
+    return students
 
 def convert_to_rankings(pref_list):
     rankings = [DEFAULT_RANK for _ in SECTIONS]
     for rank, s in enumerate(pref_list):
         index = SECTIONS.keys().index(s)
-        if rankings[index] != DEFAULT_RANK:
+        if rankings[index] == DEFAULT_RANK:
             rankings[index] = rank
     return rankings
 
@@ -113,6 +114,7 @@ def parse_results(res, students, M, analyze=False):
     sects_enroll = dict((s, SECTION_CAP) for sects in SECTIONS.values() for s in
                         sects)
     if analyze:
+        bad_count = 0
         ranks = []
     for student in students:
         for section in range(M):
@@ -124,14 +126,18 @@ def parse_results(res, students, M, analyze=False):
                 sects_enroll[random_sect] -= 1
                 if analyze:
                     try:
-                        ranks.append(student.prefs.index(
-                                         SECTIONS.keys()[section]))
+                        rank = student.prefs.index(SECTIONS.keys()[section])+1
                     except ValueError:
-                        ranks.append(DEFAULT_RANK)
+                        rank = DEFAULT_RANK + 1
+                        bad_count += 1
+                    print '{} ranked section {} as {}'.format(student.name,
+                                                              random_sect, rank)
+                    ranks.append(rank)
             i += 1
     if analyze:
+        print 'bad count: {}'.format(bad_count)
         print 'min: {0}, max: {1}, mean: {2}'.format(min(ranks), max(ranks),
-                                                     sum(ranks)/len(ranks))
+                                                   sum(ranks)/float(len(ranks)))
 
 def output_csvs(students):
     from collections import defaultdict
@@ -185,7 +191,7 @@ def make_obj_f(students, prioritize):
             s_rankings = [(r+1) * (max(Student.priorities)-student.priority+1)
                           for r in student.rankings]
         else:
-            s_rankings = [r+1 for r in student.rankings]
+            s_rankings = [(r+1)**3 for r in student.rankings]
         coeffs.extend(s_rankings)
     return coeffs
 
@@ -226,9 +232,21 @@ def make_e_v(M, N):
         v += [-1 for _ in range(len(CONCURR_SECTIONS) * N)]
     return v
 
+def analyze_top(students):
+    from collections import defaultdict
+    print 'top 2 choices'
+    sections = defaultdict(lambda: 0)
+    for student in students:
+        sections[student.prefs[0]] += 1
+        sections[student.prefs[1]] += 1
+    for k, v in sections.items():
+        print k, v
+
 def main(csv_file, prioritize, analyze):
     students = import_students(csv_file, prioritize, analyze)
     assign_sections(students, prioritize, analyze)
+    students = sorted(students, key=lambda s: s.name.split()[-1])
+    analyze_top(students)
     Student.display(students)
     output_csvs(students)
 
