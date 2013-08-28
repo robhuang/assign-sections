@@ -72,7 +72,7 @@ class Student:
     def __hash__(self):
         return hash(self.email)
 
-def import_students(csv_file, prioritize=False, analyze=False):
+def import_students(csv_file, prioritize=False, debug=False):
     """
     Returns a list of students with their specified rankings.
     """
@@ -88,12 +88,12 @@ def import_students(csv_file, prioritize=False, analyze=False):
                 rankings = convert_to_rankings(row[4:-1])
                 priority = int(row[-1])
                 stud = Student(name, sid, email, rankings, priority=priority)
-                if analyze:
+                if debug:
                     stud.prefs = row[4:-1]
             else:
                 rankings = convert_to_rankings(row[4:])
                 stud = Student(name, sid, email, rankings)
-                if analyze:
+                if debug:
                     stud.prefs = row[4:]
             students.discard(stud)
             students.add(stud)
@@ -109,11 +109,11 @@ def convert_to_rankings(pref_list):
             rankings[index] = rank
     return rankings
 
-def parse_results(res, students, M, analyze=False):
+def parse_results(res, students, M, debug=False):
     i = 0
     sects_enroll = dict((s, SECTION_CAP) for sects in SECTIONS.values() for s in
                         sects)
-    if analyze:
+    if debug:
         bad_count = 0
         ranks = []
     for student in students:
@@ -124,7 +124,7 @@ def parse_results(res, students, M, analyze=False):
                 random_sect = random.choice(possible_sects)
                 student.sections.add(random_sect)
                 sects_enroll[random_sect] -= 1
-                if analyze:
+                if debug:
                     try:
                         rank = student.prefs.index(SECTIONS.keys()[section])+1
                     except ValueError:
@@ -134,7 +134,7 @@ def parse_results(res, students, M, analyze=False):
                                                               random_sect, rank)
                     ranks.append(rank)
             i += 1
-    if analyze:
+    if debug:
         print 'bad count: {}'.format(bad_count)
         print 'min: {0}, max: {1}, mean: {2}'.format(min(ranks), max(ranks),
                                                    sum(ranks)/float(len(ranks)))
@@ -151,7 +151,7 @@ def output_csvs(students):
             for student in students:
                 csvwriter.writerow((student.name, student.email))
 
-def assign_sections(students, prioritize=False, analyze=False):
+def assign_sections(students, prioritize=False, debug=False):
     """
     students: a list of student objects
     i = index of sections
@@ -182,7 +182,7 @@ def assign_sections(students, prioritize=False, analyze=False):
     lps.lpsolve('solve', lp)
     res = lps.lpsolve('get_variables', lp)[0]
     lps.lpsolve('delete_lp', lp)
-    parse_results(res, students, M, analyze)
+    parse_results(res, students, M, debug)
 
 def make_obj_f(students, prioritize):
     coeffs = []
@@ -232,7 +232,7 @@ def make_e_v(M, N):
         v += [-1 for _ in range(len(CONCURR_SECTIONS) * N)]
     return v
 
-def analyze_top(students):
+def debug_top(students):
     from collections import defaultdict
     print 'top 2 choices'
     sections = defaultdict(lambda: 0)
@@ -242,18 +242,19 @@ def analyze_top(students):
     for k, v in sections.items():
         print k, v
 
-def main(csv_file, prioritize, analyze):
-    students = import_students(csv_file, prioritize, analyze)
-    assign_sections(students, prioritize, analyze)
-    students = sorted(students, key=lambda s: s.name.split()[-1])
-    analyze_top(students)
-    Student.display(students)
+def main(csv_file, prioritize, debug):
+    students = import_students(csv_file, prioritize, debug)
+    assign_sections(students, prioritize, debug)
+    students.sort(key=lambda s: s.name.lower().split()[-1])
+    if debug:
+        debug_top(students)
+        Student.display(students)
     output_csvs(students)
 
 if __name__ == '__main__':
     parser = ArgumentParser(description='creates optimal section assignment')
     parser.add_argument('-p', '--prioritize', action='store_true', help='give students with seniority priority')
-    parser.add_argument('-a', '--analyze', action='store_true', help='analyze results')
+    parser.add_argument('-a', '--debug', action='store_true', help='debug results')
     parser.add_argument('csv_file', help='csv file with section rankings')
     args = parser.parse_args()
-    main(args.csv_file, args.prioritize, args.analyze)
+    main(args.csv_file, args.prioritize, args.debug)
