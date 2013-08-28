@@ -12,17 +12,14 @@ SECTS_PER_STUD = 1 # currently set to 2 for assigning TAs, use 2 for class
 SECTIONS_TUP = (('M 0330-0500 PM W 0400-0530 PM', (31, 32)),
                 ('M 0500-0630 PM W 0530-0700 PM', (34,)),
                 ('M 0630-0800 PM W 0630-0800 PM', (36, 37)),
-                ('M 0630-0800 PM W 0700-0830 PM', (38,)),
-                ('Tu 0930-1100 AM Th 0930-1100 AM', (11)),
-                ('Tu 1230-0200 PM Th 1230-0200 PM', (17, 19)),
+                ('Tu 0930-1100 AM Th 0930-1100 AM', (11,)),
+                ('Tu 1230-0200 PM Th 1230-0200 PM', (19,)),
                 ('Tu 0200-0330 PM Th 0200-0330 PM', (20, 21)),
-                ('Tu 0330-0500 PM Th 0330-0500 PM', (22)),
-                ('Tu 0500-0630 PM Th 0500-0630 PM', (24)),
-                ('Tu 0630-0800 PM Th 0630-0800 PM', (26)),
-                ('Tu 0800-0930 PM Th 0800-0930 PM', (39)),
+                ('Tu 0330-0500 PM Th 0330-0500 PM', (22,)),
+                ('Tu 0500-0630 PM Th 0500-0630 PM', (24,)),
+                ('Tu 0630-0800 PM Th 0630-0800 PM', (26,)),
                 ('W 0830-1000 AM F 0830-1000 AM', (43,)),
-                ('W 0900-1030 AM F 0900-1030 AM', (29,)),
-                ('W 1030-1200 PM F 1030-1200 PM', (42,)))
+                ('W 0900-1030 AM F 0900-1030 AM', (29,)))
 SECTIONS = OrderedDict(SECTIONS_TUP)
 CONCURR_SECTIONS = ()
 DEFAULT_RANK = 8
@@ -70,10 +67,23 @@ class Student:
     def __hash__(self):
         return hash(self.email)
 
+def fix_email(email):
+    if email.endswith('@'):
+        return email + 'berkeley.edu'
+    elif '@' not in email:
+        return email + '@berkeley.edu'
+    else:
+        return email
+
 def import_students(csv_file, prioritize=False, debug=False):
     """
     Returns a list of students with their specified rankings.
     """
+    done_list = []
+    with open('done.csv') as f:
+        for row in f:
+            done_list.append(row.strip())
+
     students = set()
     with open(csv_file, 'rU') as f:
         csvreader = csv.reader(f)
@@ -82,6 +92,8 @@ def import_students(csv_file, prioritize=False, debug=False):
             name = row[1]
             sid = int(row[3])
             email = row[2]
+            if fix_email(email) not in done_list:
+                continue
             if prioritize:
                 rankings = convert_to_rankings(row[4:-1])
                 priority = int(row[-1])
@@ -102,7 +114,10 @@ def import_students(csv_file, prioritize=False, debug=False):
 def convert_to_rankings(pref_list):
     rankings = [DEFAULT_RANK for _ in SECTIONS]
     for rank, s in enumerate(pref_list):
-        index = SECTIONS.keys().index(s)
+        try:
+            index = SECTIONS.keys().index(s)
+        except ValueError:
+            continue
         if rankings[index] == DEFAULT_RANK:
             rankings[index] = rank
     return rankings
@@ -142,6 +157,7 @@ def output_csvs(students):
     import csv
     sections = defaultdict(list)
     for student in students:
+        print student
         sections[next(iter(student.sections))].append(student)
     for section, students in sections.items():
         with open(str(section) + '.csv', 'wb') as csvf:
