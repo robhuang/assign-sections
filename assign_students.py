@@ -12,18 +12,18 @@ SECTS_PER_STUD = 1 # currently set to 2 for assigning TAs, use 2 for class
 SECTIONS_TUP = (('M 0330-0500 PM W 0400-0530 PM', (30, 31, 32)),
                 ('M 0500-0630 PM W 0500-0630 PM', (35,)),
                 ('M 0500-0630 PM W 0530-0700 PM', (33, 34)),
-                ('M 0630-0800 PM W 0630-0800 PM', (38,)),
-                ('M 0630-0800 PM W 0700-0830 PM', (36, 37)),
-                ('Tu 0930-1000 AM Th 0930-1000 AM', (11, 12, 13)),
-                ('Tu 0100-0230 PM Th 0100-0230 PM', (14, 15, 16)),
-                ('Tu 0230-0200 PM Th 0230-0200 PM', (17, 18, 19)),
+                ('M 0630-0800 PM W 0630-0800 PM', (36, 37)),
+                ('M 0630-0800 PM W 0700-0830 PM', (38,)),
+                ('Tu 0930-1100 AM Th 0930-1100 AM', (11, 12, 13)),
+                ('Tu 1100-1230 PM Th 1100-1230 PM', (14, 15, 16)),
+                ('Tu 1230-0200 PM Th 1230-0200 PM', (17, 18, 19)),
                 ('Tu 0200-0330 PM Th 0200-0330 PM', (20, 21)),
                 ('Tu 0330-0500 PM Th 0330-0500 PM', (22, 23)),
                 ('Tu 0500-0630 PM Th 0500-0630 PM', (24, 25)),
                 ('Tu 0630-0800 PM Th 0630-0800 PM', (26, 27, 28)),
                 ('Tu 0800-0930 PM Th 0800-0930 PM', (39, 40, 41)),
                 ('W 0830-1000 AM F 0830-1000 AM', (43,)),
-                ('W 0900-1030 AM F 0930-1100 AM', (29,)),
+                ('W 0900-1030 AM F 0900-1030 AM', (29,)),
                 ('W 1030-1200 PM F 1030-1200 PM', (42,)))
 SECTIONS = OrderedDict(SECTIONS_TUP)
 CONCURR_SECTIONS = ()
@@ -36,7 +36,7 @@ class Student:
                  num_sections=SECTS_PER_STUD, priority=0):
         self.name = name
         self.sid = sid
-        self.email = email
+        self.fix_email(email)
         self.num_sections = num_sections
         self.rankings = rankings
         self.priority = priority
@@ -47,6 +47,13 @@ class Student:
     def display(students):
         for student in students:
             print student
+
+    def fix_email(self, email):
+        self.email = email
+        if email.endswith('@'):
+            self.email += 'berkeley.edu'
+        elif '@' not in email:
+            self.email += '@berkeley.edu'
 
     def __repr__(self):
         return 'Student({0}, {1})'.format(self.name, self.sid, self.email,
@@ -59,10 +66,11 @@ class Student:
     def __eq__(self, other):
         if not isinstance(other, Student):
             raise TypeError('can only compare with a Student')
-        return other.name == self.name and other.email == self.email
+        return (other.email == self.email) + \
+               (other.name == self.name) + (other.sid == self.sid) > 1
 
     def __hash__(self):
-        return hash(self.name + str(self.sid))
+        return hash(self.email)
 
 
 def import_students(csv_file, prioritize=False, analyze=False):
@@ -125,6 +133,18 @@ def parse_results(res, students, M, analyze=False):
         print 'min: {0}, max: {1}, mean: {2}'.format(min(ranks), max(ranks),
                                                      sum(ranks)/len(ranks))
 
+def output_csvs(students):
+    from collections import defaultdict
+    import csv
+    sections = defaultdict(list)
+    for student in students:
+        sections[next(iter(student.sections))].append(student)
+    for section, students in sections.items():
+        with open(str(section) + '.csv', 'wb') as csvf:
+            csvwriter = csv.writer(csvf)
+            for student in students:
+                csvwriter.writerow((student.name, student.email))
+
 def assign_sections(students, prioritize=False, analyze=False):
     """
     students: a list of student objects
@@ -145,6 +165,8 @@ def assign_sections(students, prioritize=False, analyze=False):
 
     lp = lpm.lp_maker(f, A, b, e, None, v)
 
+    # set branch and bound depth to be unlimited
+    lps.lpsolve('set_bb_depthlimit', lp, 0)
     # set all variables to binary
     lps.lpsolve('set_binary', lp, v)
     # set lp to minimize the objective function
@@ -208,6 +230,7 @@ def main(csv_file, prioritize, analyze):
     students = import_students(csv_file, prioritize, analyze)
     assign_sections(students, prioritize, analyze)
     Student.display(students)
+    output_csvs(students)
 
 if __name__ == '__main__':
     parser = ArgumentParser(description='creates optimal section assignment')
